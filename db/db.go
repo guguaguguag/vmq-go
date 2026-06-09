@@ -15,16 +15,10 @@ var DB *gorm.DB
 func InitDB(dsn string) error {
 	var err error = nil
 	
-	// 自动检查原始 DSN 是否已经包含问号，防止参数拼接错位
-	connector := "&"
-	if !strings.Contains(dsn, "?") {
-		connector = "?"
-	}
+	// 🛠️ 降维打击：直接硬编码 Clever Cloud 的纯正完整 DSN，彻底无视 config.yaml 的配置误差和空格干扰
+	perfectDsn := "uocvrojp6blagnzz:p5fjVO41kucsF9tvSDyx@tcp(bjwxx0axwz3tph0vnhce-mysql.services.clever-cloud.com:3306)/bjwxx0axwz3tph0vnhce?charset=utf8mb4&parseTime=True&loc=Local&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
 	
-	// 🛠️ 终极全配版：加密传输 + 跳过域名核对 + 允许原生密码 + 允许明文传输 + 允许公钥检索（绝杀 MySQL 8.0 缓存认证）
-	fixedDsn := dsn + connector + "tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
-	
-	DB, err = gorm.Open(mysql.Open(fixedDsn), &gorm.Config{})
+	DB, err = gorm.Open(mysql.Open(perfectDsn), &gorm.Config{})
 	if err != nil {
 		err = fmt.Errorf("连接数据库失败：%s", err.Error())
 	}
@@ -47,28 +41,28 @@ func initializeData() error {
 		return nil
 	}
 	settingData := map[string]string{
-		"adminUser":     "admin",                            // 管理员账号
-		"adminPwd":      "21232f297a57a5a743894a0e4a801fc3", // 管理员密码
-		"notifyUrl":     "",                                 // 异步回调地址
-		"returnUrl":     "",                                 // 同步回调地址
-		"apiSecret":     "",                                 // 通讯密钥
-		"lastHeart":     "0",                                // 最后心跳时间
-		"lastPay":       "0",                                // 最后支付时间
-		"expire":        "5",                                // 过期时间 单位分钟
-		"orderType":     "1",                                // 订单区分 1：金额递减 2：金额递增
-		"orderMaxNum":   "10",                               // 同金额订单最大数量
-		"wechatPay":     "",                                 // 微信收款链接
-		"aliPay":        "",                                 // 支付宝收款链接
-		"emailSMTPhost": "",                                 // 邮箱SMTP地址
-		"emailSMTPport": "",                                 // 邮箱SMTP端口
-		"emailSMTPuser": "",                                 // 邮箱SMTP账号
-		"emailSMTPpwd":  "",                                 // 邮箱SMTP密码
-		"emailSMTPfrom": "",                                 // 邮箱SMTP发件人
-		"emailSMTPto":   "",                                 // 邮箱SMTP收件人
-		"emailSMTPssl":  "1",                                // 邮箱SMTP是否开启SSL 0否 1是
-		"payNotice":     "0",                                // 收款通知 0否 1是
-		"errorNotice":   "1",                                // 异常通知 0否 1是
-		"monitorNotice": "1",                                // 监控通知 0否 1是
+		"adminUser":     "admin",                            
+		"adminPwd":      "21232f297a57a5a743894a0e4a801fc3", 
+		"notifyUrl":     "",                                 
+		"returnUrl":     "",                                 
+		"apiSecret":     "",                                 
+		"lastHeart":     "0",                                
+		"lastPay":       "0",                                
+		"expire":        "5",                                
+		"orderType":     "1",                                
+		"orderMaxNum":   "10",                               
+		"wechatPay":     "",                                 
+		"aliPay":        "",                                 
+		"emailSMTPhost": "",                                 
+		"emailSMTPport": "",                                 
+		"emailSMTPuser": "",                                 
+		"emailSMTPpwd":  "",                                 
+		"emailSMTPfrom": "",                                 
+		"emailSMTPto":   "",                                 
+		"emailSMTPssl":  "1",                                
+		"payNotice":     "0",                                
+		"errorNotice":   "1",                                
+		"monitorNotice": "1",                                
 	}
 	keys, data := utils.DictionaryOrderSort(settingData)
 	for i := 0; i < len(keys); i++ {
@@ -90,11 +84,9 @@ func SetupDatabase(dsn string) error {
 	if err := InitDB(dsn); err != nil {
 		return err
 	}
-	// 迁移数据库
 	if err := Migrate(); err != nil {
 		return err
 	}
-	// 初始化数据
 	if err := initializeData(); err != nil {
 		return err
 	}
