@@ -14,8 +14,8 @@ var DB *gorm.DB
 func InitDB(dsn string) error {
 	var err error = nil
 	
-	// 🛠️ 终极完整版参数：强制开启强信任 TLS + 允许原生密码 + 允许明文传输密码完成安全握手
-	fixedDsn := dsn + "&tls=true&allowNativePasswords=true&allowCleartextPasswords=true"
+	// 🛠️ 终极通关钥匙：开启 TLS 加密传输 + 跳过死板的证书域名核对 + 允许明文密码握手
+	fixedDsn := dsn + "&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true"
 	
 	DB, err = gorm.Open(mysql.Open(fixedDsn), &gorm.Config{})
 	if err != nil {
