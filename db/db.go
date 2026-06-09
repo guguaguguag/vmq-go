@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strings"
 	"vmq-go/utils"
 
 	"gorm.io/driver/mysql"
@@ -14,8 +15,14 @@ var DB *gorm.DB
 func InitDB(dsn string) error {
 	var err error = nil
 	
-	// 🛠️ 终极通关钥匙：开启 TLS 加密传输 + 跳过死板的证书域名核对 + 允许明文密码握手
-	fixedDsn := dsn + "&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true"
+	// 自动检查原始 DSN 是否已经包含问号，防止参数拼接错位
+	connector := "&"
+	if !strings.Contains(dsn, "?") {
+		connector = "?"
+	}
+	
+	// 🛠️ 终极全配版：加密传输 + 跳过域名核对 + 允许原生密码 + 允许明文传输 + 允许公钥检索（绝杀 MySQL 8.0 缓存认证）
+	fixedDsn := dsn + connector + "tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
 	
 	DB, err = gorm.Open(mysql.Open(fixedDsn), &gorm.Config{})
 	if err != nil {
@@ -32,8 +39,6 @@ func Migrate() error {
 
 // 初始化数据
 func initializeData() error {
-	// 初始化 setting 数据
-	// 如果setting表中没有数据，则初始化数据
 	var settingCount int64
 	if err := DB.Model(&Setting{}).Count(&settingCount).Error; err != nil {
 		return err
