@@ -14,8 +14,8 @@ var DB *gorm.DB
 func InitDB(dsn string) error {
 	var err error = nil
 
-	// 🛠️ 绝杀内鬼：使用带数字 1 的绝对正确用户名，并追加全套高版本安全握手参数
-	perfectDsn := "uocvrojp6b1agnzz:p5fjVO41kucsF9tvSDyx@tcp(bjwxx0axwz3tph0vnhce-mysql.services.clever-cloud.com:3306)/bjwxx0axwz3tph0vnhce?charset=utf8mb4&parseTime=True&loc=Local&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
+	// 🛠️ 绝杀全场：使用刷新激活后的最新密码，配合全套高版本安全握手参数
+	perfectDsn := "uocvrojp6b1agnzz:oU96TZN2pDNklPfIktqm@tcp(bjwxx0axwz3tph0vnhce-mysql.services.clever-cloud.com:3306)/bjwxx0axwz3tph0vnhce?charset=utf8mb4&parseTime=True&loc=Local&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
 
 	// 严格的多行格式，彻底规避编译器换行误判
 	DB, err = gorm.Open(
