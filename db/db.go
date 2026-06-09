@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"strings"
 	"vmq-go/utils"
 
 	"gorm.io/driver/mysql"
@@ -15,15 +14,12 @@ var DB *gorm.DB
 func InitDB(dsn string) error {
 	var err error = nil
 
-	// 自动判定连接符，动态追加全套高/低版本通用兼容参数（安全传输+公钥检索+明文传输）
-	connector := "&"
-	if !strings.Contains(dsn, "?") {
-		connector = "?"
-	}
-	fixedDsn := dsn + connector + "tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
+	// 🛠️ 绝杀内鬼：使用带数字 1 的绝对正确用户名，并追加全套高版本安全握手参数
+	perfectDsn := "uocvrojp6b1agnzz:p5fjVO41kucsF9tvSDyx@tcp(bjwxx0axwz3tph0vnhce-mysql.services.clever-cloud.com:3306)/bjwxx0axwz3tph0vnhce?charset=utf8mb4&parseTime=True&loc=Local&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
 
+	// 严格的多行格式，彻底规避编译器换行误判
 	DB, err = gorm.Open(
-		mysql.Open(fixedDsn),
+		mysql.Open(perfectDsn),
 		&gorm.Config{},
 	)
 	if err != nil {
@@ -74,7 +70,7 @@ func initializeData() error {
 		"emailSMTPssl":  "1",                                // 邮箱SMTP是否开启SSL 0否 1是
 		"payNotice":     "0",                                // 收款通知 0否 1是
 		"errorNotice":   "1",                                // 异常通知 0否 1是
-		"monitorNotice": "1", // 监控通知 0否 1是
+		"monitorNotice": "1",                                // 监控通知 0否 1是
 	}
 	keys, data := utils.DictionaryOrderSort(settingData)
 	for i := 0; i < len(keys); i++ {
