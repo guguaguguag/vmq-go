@@ -13,11 +13,15 @@ var DB *gorm.DB
 // 初始化数据库连接
 func InitDB(dsn string) error {
 	var err error = nil
-	
-	// 🛠️ 降维打击：直接硬编码 Clever Cloud 的纯正完整 DSN，彻底无视 config.yaml 的配置误差和空格干扰
+
+	// 🛠️ 降维打击：直接硬编码 Clever Cloud 的 DSN，彻底无视配置误差
 	perfectDsn := "uocvrojp6blagnzz:p5fjVO41kucsF9tvSDyx@tcp(bjwxx0axwz3tph0vnhce-mysql.services.clever-cloud.com:3306)/bjwxx0axwz3tph0vnhce?charset=utf8mb4&parseTime=True&loc=Local&tls=skip-verify&allowNativePasswords=true&allowCleartextPasswords=true&allowPublicKeyRetrieval=true"
-	
-	DB, err = gorm.Open(mysql.Open(perfectDsn), &gorm.Config{})
+
+	// 使用严格的多行断句格式，末尾自带逗号，彻底防止编译器误判换行
+	DB, err = gorm.Open(
+		mysql.Open(perfectDsn),
+		&gorm.Config{},
+	)
 	if err != nil {
 		err = fmt.Errorf("连接数据库失败：%s", err.Error())
 	}
@@ -26,7 +30,12 @@ func InitDB(dsn string) error {
 
 // 迁移数据库
 func Migrate() error {
-	err := DB.AutoMigrate(&PayOrder{}, &PayQrcode{}, &Setting{}, &Paylog{})
+	err := DB.AutoMigrate(
+		&PayOrder{},
+		&PayQrcode{},
+		&Setting{},
+		&Paylog{},
+	)
 	return err
 }
 
@@ -83,11 +92,9 @@ func SetupDatabase(dsn string) error {
 	if err := InitDB(dsn); err != nil {
 		return err
 	}
-	// 迁移数据库
 	if err := Migrate(); err != nil {
 		return err
 	}
-	// 初始化数据
 	if err := initializeData(); err != nil {
 		return err
 	}
