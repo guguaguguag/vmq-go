@@ -23,12 +23,14 @@ func InitRouter(route *gin.Engine) {
 	routeGroup := route.Group("/api")
 	
 	// ============================================================
-	// 🚀 核心修复：把查询订单移到中间件上方，彻底脱离 JSONMiddleware 的污染控制！
+	// 🚀 核心修复：把所有前端依赖的查询接口全部移到中间件上方，彻底免疫 200 污染！
 	// ============================================================
 	// 创建订单
 	routeGroup.POST("/order", creatOrderHandler)
-	// 查询订单
+	// 查询订单详情
 	routeGroup.GET("/order/:orderId", getOrderGetHandler)
+	// 查询订单支付状态（🔥 强行移到这里，脱离中间件魔爪）
+	routeGroup.GET("/order/:orderId/state", getOrderStateGetHandler)
 	// qrcode
 	routeGroup.GET("/qrcode", qrcodeGetHandler)
 
@@ -37,8 +39,6 @@ func InitRouter(route *gin.Engine) {
 	admin.SetupAdminRoutes(routeGroup)
 	// 解析二维码
 	routeGroup.POST("/qrcode", qrcodePostHandler)
-	// 查询订单状态
-	routeGroup.GET("/order/:orderId/state", getOrderStateGetHandler)
 	// 验证码
 	routeGroup.GET("/captcha", captchaHandler)
 	// 心跳
@@ -249,7 +249,6 @@ func creatOrderHandler(c *gin.Context) {
 	})
 }
 
-// 🛠️ 终极修复：彻底清理错误单词，平稳直出 code: 1 给前端
 func getOrderGetHandler(c *gin.Context) {
 	orderId := c.Param("orderId")
 	if orderId == "" {
@@ -281,18 +280,19 @@ func getOrderGetHandler(c *gin.Context) {
 	})
 }
 
+// 🛠️ 终极修复：绕过中间件，给前端异步轮询脚本直出 code: 1 状态包！
 func getOrderStateGetHandler(c *gin.Context) {
 	orderId := c.Param("orderId")
 	if orderId == "" {
-		c.Error(fmt.Errorf("orderId is empty"))
+		c.IndentedJSON(200, gin.H{"code": -1, "msg": "orderId is empty"})
 		return
 	}
 	order, err := db.GetPayOrderByOrderID(orderId)
 	if err != nil {
 		if err.Error() == "record not found" {
-			c.Error(fmt.Errorf("order not found"))
+			c.IndentedJSON(200, gin.H{"code": -1, "msg": "order not found"})
 		} else {
-			c.Error(err)
+			c.IndentedJSON(200, gin.H{"code": -1, "msg": err.Error()})
 		}
 		return
 	}
@@ -305,7 +305,7 @@ func getOrderStateGetHandler(c *gin.Context) {
 	}
 	appConfig, err := db.GetAppConfig()
 	if err != nil {
-		c.Error(err)
+		c.IndentedJSON(200, gin.H{"code": -1, "msg": err.Error()})
 		return
 	}
 	sign := hash.GetMD5Hash(fmt.Sprintf("%s%s%s%s%s", order.PayID, order.Param, fmt.Sprintf("%d", order.Type), utils.Float64ToSting(order.Price), utils.Float64ToSting(order.ReallyPrice)) + appConfig.APISecret)
@@ -326,9 +326,15 @@ func getOrderStateGetHandler(c *gin.Context) {
 		state = order.State
 		returnUrl = ""
 	}
-	c.Set("data", gin.H{
-		"state":     state,
-		"returnUrl": returnUrl,
+	
+	// 🚀 精准锁死 code: 1，喂饱前端轮询脚本，促使网页自动强行跳出！
+	c.IndentedJSON(200, gin.H{
+		"code": 1,
+		"msg":  "success",
+		"data": gin.H{
+			"state":     state,
+			"returnUrl": returnUrl,
+		},
 	})
 }
 
