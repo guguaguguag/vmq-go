@@ -247,8 +247,8 @@ func creatOrderHandler(c *gin.Context) {
 			"payUrl":      order.PayURL,
 			"isAuto":      order.IsAuto,
 			"state":       order.State,
-			"createDate":  order.CreateDate,
-			"expectDate":  order.ExpectDate,
+			"createDate":  order.CreateDate * 1000,
+			"expectDate":  order.ExpectDate * 1000,
 			"timeOut":     timeout,
 			"redirectUrl": fmt.Sprintf("/payment/%s", order.OrderID),
 		},
@@ -275,8 +275,8 @@ func getOrderGetHandler(c *gin.Context) {
 		"payUrl":      order.PayURL,
 		"isAuto":      order.IsAuto,
 		"state":       order.State,
-		"createDate":  order.CreateDate,
-		"expectDate":  order.ExpectDate,
+		"createDate":  order.CreateDate * 1000,
+		"expectDate":  order.ExpectDate * 1000,
 	})
 }
 
