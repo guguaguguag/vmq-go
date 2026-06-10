@@ -69,7 +69,6 @@ func qrcodeGetHandler(c *gin.Context) {
 	case "image":
 		c.Writer.Header().Set("Content-Type", "image/png")
 		c.Request.Header.Set("Content-Type", "image/png")
-		// 将base64Str 转为 []byte
 		buf, err := base64.StdEncoding.DecodeString(base64Str)
 		if err != nil {
 			c.JSON(
@@ -88,13 +87,11 @@ func qrcodeGetHandler(c *gin.Context) {
 }
 
 func qrcodePostHandler(c *gin.Context) {
-	// 从请求中获取图片
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	// 读取file 2 []byte
 	src, err := file.Open()
 	if err != nil {
 		c.Error(err)
@@ -108,9 +105,7 @@ func qrcodePostHandler(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	// []byte 2 base64
 	base64Str := base64.StdEncoding.EncodeToString(buf)
-	// 解读二维码
 	content, err := qrcode.DecodeQrcodeFromStr(base64Str)
 	if err != nil {
 		c.Set("code", http.StatusInternalServerError)
@@ -131,9 +126,7 @@ type CreateOrderParams struct {
 }
 
 func creatOrderHandler(c *gin.Context) {
-	// 检查订单是否过期
 	task.CheckOrderExpire()
-	// 检查心跳
 	heart := task.CheckHeart()
 	if !heart {
 		c.JSON(200, gin.H{
@@ -142,7 +135,6 @@ func creatOrderHandler(c *gin.Context) {
 		})
 		return
 	}
-	// 获取参数
 	var params CreateOrderParams
 	if c.ContentType() == "application/x-www-form-urlencoded" {
 		payId := c.PostForm("payId")
@@ -189,7 +181,6 @@ func creatOrderHandler(c *gin.Context) {
 			c.Error(err)
 			return
 		}
-		// 1. 验证签名
 		sign := hash.GetMD5Hash(payId + param + typeStr + priceStr + appConfig.APISecret)
 		if sign != params.Sign {
 			c.JSON(200, gin.H{
@@ -205,8 +196,6 @@ func creatOrderHandler(c *gin.Context) {
 		})
 		return
 	}
-	// 创建订单
-	// 2. 验证订单是否存在
 	_, err := db.GetPayOrderByPayID(params.PayId)
 	if err == nil || err.Error() != "record not found" {
 		c.JSON(200, gin.H{
@@ -216,7 +205,6 @@ func creatOrderHandler(c *gin.Context) {
 		return
 	}
 	err = nil
-	// 3. 创建订单
 	err = db.AddPayOrder(params.PayId, params.Type, params.Price, params.Param, params.NotifyUrl, params.ReturnUrl)
 	if err != nil {
 		c.JSON(200, gin.H{
@@ -225,7 +213,6 @@ func creatOrderHandler(c *gin.Context) {
 		})
 		return
 	}
-	// 返回结果
 	order, err := db.GetPayOrderByPayID(params.PayId)
 	if err != nil {
 		c.JSON(200, gin.H{
@@ -247,37 +234,45 @@ func creatOrderHandler(c *gin.Context) {
 			"payUrl":      order.PayURL,
 			"isAuto":      order.IsAuto,
 			"state":       order.State,
-			"createDate":  order.CreateDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
-			"expectDate":  order.ExpectDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
+			"createDate":  order.CreateDate * 1000, 
+			"expectDate":  order.ExpectDate * 1000,
 			"timeOut":     timeout,
 			"redirectUrl": fmt.Sprintf("/payment/%s", order.OrderID),
 		},
 	})
 }
 
+// 🛠️ 终极修复：绕过 JSONMiddleware 的 200 状态码污染，强行直出原汁原味的 code: 1 给前端！
 func getOrderGetHandler(c *gin.Context) {
 	orderId := c.Param("orderId")
 	if orderId == "" {
-		c.Error(fmt.Errorf("orderId is empty"))
+		c.JSON(200, gin.H{"code": -1, "msg": "orderId is empty"})
 		return
 	}
 	order, err := db.GetPayOrderByOrderID(orderId)
 	if err != nil {
-		c.Error(err)
+		c.JSON(200, gin.H{"code": -1, "msg": err.Error()})
 		return
 	}
-	c.Set("data", gin.H{
-		"payId":       order.PayID,
-		"orderId":     order.OrderID,
-		"payType":     order.Type,
-		"price":       order.Price,
-		"reallyPrice": order.ReallyPrice,
-		"payUrl":      order.PayURL,
-		"isAuto":      order.IsAuto,
-		"state":       order.State,
-		"createDate":  order.CreateDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
-		"expectDate":  order.ExpectDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
-		"timeOut":     (order.ExpectDate - order.CreateDate) / 60, // 🛠️ 终极修复：把原作者在查询接口里漏掉的 timeOut 补上去！
+	timeout := (order.ExpectDate - order.CreateDate) / 60
+	
+	// 精准对齐创建订单的返回格式，将外层的 code 锁死为 1
+	c.JSON(200, gin.H{
+		"code": 1,
+		"msg":  "success",
+		"data": gin.H{
+			"payId":       order.PayID,
+			"orderId":     order.OrderID,
+			"payType":     order.Type,
+			"price":       order.Price,
+			"reallyPrice": order.ReallyPrice,
+			"payUrl":      order.PayURL,
+			"isAuto":      order.IsAuto,
+			"state":       order.State,
+			"createDate":  order.CreateDate * 1000, 
+			"expectDate":  order.ExpectDate * 1000, 
+			"timeOut":     timeout,
+		},
 	})
 }
 
@@ -308,9 +303,7 @@ func getOrderStateGetHandler(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	// sign := hash.GetMD5Hash(payId + param + typeStr + priceStr + key.VValue)
 	sign := hash.GetMD5Hash(fmt.Sprintf("%s%s%s%s%s", order.PayID, order.Param, fmt.Sprintf("%d", order.Type), utils.Float64ToSting(order.Price), utils.Float64ToSting(order.ReallyPrice)) + appConfig.APISecret)
-	// 将map转为get参数 用于跳转
 	paramStr := ""
 	for k, v := range paramMap {
 		paramStr += fmt.Sprintf("%s=%s&", k, v)
@@ -377,7 +370,6 @@ func HeartHandler(c *gin.Context) {
 		return
 	}
 	timeNow := utils.GetUnix13()
-	// 如果时间差大于10秒
 	if math.Abs(float64(timeNow-timeInt)) > 10000 {
 		c.Error(fmt.Errorf("time error"))
 		return
@@ -411,7 +403,7 @@ func AppPushHandler(c *gin.Context) {
 		c.Error(fmt.Errorf("t is empty"))
 		return
 	}
-	_type := c.Query("type") // 1:微信 2:支付宝
+	_type := c.Query("type") 
 	if _type == "" {
 		c.Error(fmt.Errorf("type is empty"))
 		return
