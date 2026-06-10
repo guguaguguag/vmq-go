@@ -247,8 +247,8 @@ func creatOrderHandler(c *gin.Context) {
 			"payUrl":      order.PayURL,
 			"isAuto":      order.IsAuto,
 			"state":       order.State,
-			"createDate":  order.CreateDate * 1000,
-			"expectDate":  order.ExpectDate * 1000,
+			"createDate":  order.CreateDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
+			"expectDate":  order.ExpectDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
 			"timeOut":     timeout,
 			"redirectUrl": fmt.Sprintf("/payment/%s", order.OrderID),
 		},
@@ -275,8 +275,9 @@ func getOrderGetHandler(c *gin.Context) {
 		"payUrl":      order.PayURL,
 		"isAuto":      order.IsAuto,
 		"state":       order.State,
-		"createDate":  order.CreateDate * 1000,
-		"expectDate":  order.ExpectDate * 1000,
+		"createDate":  order.CreateDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
+		"expectDate":  order.ExpectDate * 1000, // 🛠️ 修复：秒变毫秒级时间戳
+		"timeOut":     (order.ExpectDate - order.CreateDate) / 60, // 🛠️ 终极修复：把原作者在查询接口里漏掉的 timeOut 补上去！
 	})
 }
 
