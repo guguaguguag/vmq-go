@@ -249,7 +249,7 @@ func creatOrderHandler(c *gin.Context) {
 	})
 }
 
-// 🛠️ 终极修复：完美对齐格式，彻底直通前端
+// 🛠️ 终极修复：彻底清理错误单词，平稳直出 code: 1 给前端
 func getOrderGetHandler(c *gin.Context) {
 	orderId := c.Param("orderId")
 	if orderId == "" {
@@ -258,7 +258,6 @@ func getOrderGetHandler(c *gin.Context) {
 	}
 	order, err := db.GetPayOrderByOrderID(orderId)
 	if err != nil {
-		documentIndentedJSON(200, gin.H{"code": -1, "msg": err.Error()})
 		c.IndentedJSON(200, gin.H{"code": -1, "msg": err.Error()})
 		return
 	}
