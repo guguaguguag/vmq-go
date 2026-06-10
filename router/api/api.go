@@ -21,10 +21,18 @@ import (
 // 初始化路由
 func InitRouter(route *gin.Engine) {
 	routeGroup := route.Group("/api")
+	
+	// ============================================================
+	// 🚀 核心修复：把查询订单移到中间件上方，彻底脱离 JSONMiddleware 的污染控制！
+	// ============================================================
 	// 创建订单
 	routeGroup.POST("/order", creatOrderHandler)
+	// 查询订单
+	routeGroup.GET("/order/:orderId", getOrderGetHandler)
 	// qrcode
 	routeGroup.GET("/qrcode", qrcodeGetHandler)
+
+	// --------------- 🚪 以下接口继续由中间件统一包装 ---------------
 	routeGroup.Use(middleware.JSONMiddleware())
 	admin.SetupAdminRoutes(routeGroup)
 	// 解析二维码
@@ -37,8 +45,7 @@ func InitRouter(route *gin.Engine) {
 	routeGroup.GET("/appHeart", HeartHandler)
 	// 收到推送
 	routeGroup.GET("/appPush", AppPushHandler)
-	// 查询订单
-	routeGroup.GET("/order/:orderId", getOrderGetHandler)
+	
 	routeGroup.Use(middleware.AuthMiddleware())
 	// 重新回调订单
 	routeGroup.PUT("/order/:orderId", reCallbackOrderHandler)
@@ -242,22 +249,21 @@ func creatOrderHandler(c *gin.Context) {
 	})
 }
 
-// 🛠️ 终极修复：绕过 JSONMiddleware 的 200 状态码污染，强行直出原汁原味的 code: 1 给前端！
+// 🛠️ 终极修复：完美对齐格式，彻底直通前端
 func getOrderGetHandler(c *gin.Context) {
 	orderId := c.Param("orderId")
 	if orderId == "" {
-		c.JSON(200, gin.H{"code": -1, "msg": "orderId is empty"})
+		c.IndentedJSON(200, gin.H{"code": -1, "msg": "orderId is empty"})
 		return
 	}
 	order, err := db.GetPayOrderByOrderID(orderId)
 	if err != nil {
-		c.JSON(200, gin.H{"code": -1, "msg": err.Error()})
+		documentIndentedJSON(200, gin.H{"code": -1, "msg": err.Error()})
+		c.IndentedJSON(200, gin.H{"code": -1, "msg": err.Error()})
 		return
 	}
 	timeout := (order.ExpectDate - order.CreateDate) / 60
-	
-	// 精准对齐创建订单的返回格式，将外层的 code 锁死为 1
-	c.JSON(200, gin.H{
+	c.IndentedJSON(200, gin.H{
 		"code": 1,
 		"msg":  "success",
 		"data": gin.H{
